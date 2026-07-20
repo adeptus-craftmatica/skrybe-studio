@@ -49,6 +49,10 @@ htmlcov/
 .vscode/
 !.vscode/extensions.json
 
+# --- Claude Code / AI assistant local session files ---
+.claude/
+CLAUDE.local.md
+
 # --- OS ---
 .DS_Store
 Thumbs.db
