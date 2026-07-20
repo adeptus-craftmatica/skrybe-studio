@@ -12,6 +12,7 @@ from skrybe_studio.core.contracts.command import Command
 from skrybe_studio.core.plugins.base import Plugin
 from skrybe_studio.core.plugins.context import PluginContext, ProjectContext
 from skrybe_studio.core.workspaces.models import PanelPlacement, Workspace
+from skrybe_studio.core.workspaces.panels import find_enclosing_main_window
 from skrybe_studio.plugins.manuscript.application.asset_integration import ManuscriptAssetService
 from skrybe_studio.plugins.manuscript.application.document_service import DocumentService
 from skrybe_studio.plugins.manuscript.application.export.compile import Compiler
@@ -427,19 +428,23 @@ class ManuscriptPlugin(Plugin):
         self._toggle_dock("dock.manuscript.inspector")
 
     def _cmd_search_manuscript(self) -> None:
-        if self._editor_panel is None:
-            return
-        dock = self._editor_panel.window().findChild(QDockWidget, "dock.manuscript.search")
+        dock = self._find_own_dock("dock.manuscript.search")
         if dock is not None:
             dock.setVisible(True)
             dock.raise_()
 
     def _toggle_dock(self, object_name: str) -> None:
-        if self._editor_panel is None:
-            return
-        dock = self._editor_panel.window().findChild(QDockWidget, object_name)
+        dock = self._find_own_dock(object_name)
         if dock is not None:
             dock.setVisible(not dock.isVisible())
+
+    def _find_own_dock(self, object_name: str) -> QDockWidget | None:
+        if self._editor_panel is None:
+            return None
+        enclosing = find_enclosing_main_window(self._editor_panel)
+        if enclosing is None:
+            return None
+        return enclosing.findChild(QDockWidget, object_name)
 
     def _cmd_toggle_focus_mode(self) -> None:
         if self._editor_panel is not None:

@@ -42,6 +42,60 @@ def test_main_window_reflects_created_project_in_status_bar(
     assert "Smoke Test" in window.statusBar().currentMessage()
 
 
+def test_switching_workspaces_preserves_widget_identity(
+    loaded_application: Application, qtbot, project_root: Path
+) -> None:
+    """Revisiting a workspace tab must reuse its panels, not rebuild them -
+    otherwise state like scroll position or an in-progress search resets on
+    every switch, which is the exact regression the tab-based workspace
+    switcher (replacing the old destroy-and-rebuild-on-every-switch combo
+    box) was built to fix.
+    """
+    window = MainWindow(loaded_application)
+    qtbot.addWidget(window)
+    window.show()
+
+    loaded_application.create_project(project_root, "Tab Cache Test")
+    window._on_project_opened()
+
+    window._switch_workspace("notes")
+    first_central = window._workspace_pages["notes"].centralWidget()
+
+    window._switch_workspace("assets")
+    window._switch_workspace("notes")
+    second_central = window._workspace_pages["notes"].centralWidget()
+
+    assert first_central is second_central
+
+
+def test_reopening_a_project_rebuilds_stale_workspace_content(
+    loaded_application: Application, qtbot, project_root: Path, tmp_path: Path
+) -> None:
+    """A workspace's cached panels are bound to one project's plugin
+    services - closing that project and opening another must rebuild them,
+    even though the tab itself (and its underlying QMainWindow page) is
+    never destroyed.
+    """
+    window = MainWindow(loaded_application)
+    qtbot.addWidget(window)
+    window.show()
+
+    loaded_application.create_project(project_root, "First Project")
+    window._on_project_opened()
+    window._switch_workspace("notes")
+    first_central = window._workspace_pages["notes"].centralWidget()
+
+    window._on_close_project()
+
+    second_root = tmp_path / "SecondProject"
+    loaded_application.create_project(second_root, "Second Project")
+    window._on_project_opened()
+    window._switch_workspace("notes")
+    second_central = window._workspace_pages["notes"].centralWidget()
+
+    assert first_central is not second_central
+
+
 def test_main_window_launches_even_if_a_plugin_fails_to_register(
     application: Application, monkeypatch: pytest.MonkeyPatch, qtbot
 ) -> None:

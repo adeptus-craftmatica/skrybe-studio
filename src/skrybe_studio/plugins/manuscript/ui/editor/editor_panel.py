@@ -3,11 +3,12 @@
 Focus mode and the split view are pure presentation state over the
 existing dock widgets and tab widgets - there is no separate
 persistence path or editor implementation for them. Focus mode hides
-dock widgets by walking the top-level window's own child widgets
-(`self.window().findChildren(QDockWidget)`), a stock Qt mechanism that
-requires no import of - or hook into - the main window class itself, so
-it works identically inside the full application shell and the
-standalone plugin host.
+dock widgets by walking the enclosing dock layout's own child widgets
+(`find_enclosing_main_window(self).findChildren(QDockWidget)`), a stock
+Qt mechanism that requires no import of - or hook into - the main
+window class itself, so it works identically inside the full
+application shell (where each workspace's docks live in their own
+embedded `QMainWindow`) and the standalone plugin host.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from PySide6.QtWidgets import QDockWidget, QSplitter, QTabWidget, QVBoxLayout, Q
 
 from skrybe_studio.core.contracts.event import Event
 from skrybe_studio.core.events.bus import EventBus
+from skrybe_studio.core.workspaces.panels import find_enclosing_main_window
 from skrybe_studio.plugins.manuscript.application.events import NodeSelectionChanged
 from skrybe_studio.plugins.manuscript.ui.editor.document_editor import DocumentEditor
 
@@ -168,8 +170,8 @@ class EditorPanel(QWidget):
     # --- focus mode --------------------------------------------------------------------
 
     def toggle_focus_mode(self) -> None:
-        top_level = self.window()
-        dock_widgets = top_level.findChildren(QDockWidget)
+        enclosing = find_enclosing_main_window(self)
+        dock_widgets = enclosing.findChildren(QDockWidget) if enclosing is not None else []
         if not self._focus_mode_active:
             self._hidden_docks = [dock for dock in dock_widgets if dock.isVisible()]
             for dock in self._hidden_docks:

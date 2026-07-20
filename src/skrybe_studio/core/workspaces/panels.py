@@ -9,11 +9,32 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QMainWindow, QWidget
 
 logger = logging.getLogger(__name__)
 
 PanelFactory = Callable[[], QWidget]
+
+
+def find_enclosing_main_window(widget: QWidget) -> QMainWindow | None:
+    """The nearest ancestor `QMainWindow` - not necessarily `widget.window()`.
+
+    Each workspace's panels are docked inside a per-workspace `QMainWindow`
+    embedded as one tab of the app's workspace tab widget (see
+    `ui/main_window.py`), which is *not* the app's actual top-level window -
+    so `widget.window()` resolves past it and would search every workspace's
+    docks at once, not just this panel's own. The standalone plugin host, by
+    contrast, docks panels directly on its own top-level `QMainWindow`, where
+    this and `widget.window()` agree. Use this whenever a plugin needs "the
+    dock layout I'm part of" (e.g. focus mode hiding every other dock in the
+    same workspace) so the behavior is correct in both hosts.
+    """
+    parent = widget.parentWidget()
+    while parent is not None:
+        if isinstance(parent, QMainWindow):
+            return parent
+        parent = parent.parentWidget()
+    return None
 
 
 class DuplicatePanelError(RuntimeError):

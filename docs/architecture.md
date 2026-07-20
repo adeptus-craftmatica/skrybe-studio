@@ -124,17 +124,40 @@ workspace is active. The main window (and the standalone plugin host) build thei
 layout purely by resolving IDs through these two registries, so a workspace never needs to
 know which plugin implements its panels.
 
+In the full application shell, each registered workspace gets one persistent tab in
+`MainWindow`'s tab bar, and each tab's content is a per-workspace `QMainWindow` embedded as a
+plain child widget (`setWindowFlags(Qt.WindowType.Widget)` clears the top-level-window flag
+`QMainWindow` sets by default) so its own dock widgets stay scoped to that workspace instead of
+living directly on the app's real top-level window. Tabs - and their embedded `QMainWindow`
+pages - are built once and kept alive for the app's lifetime; only a page's *content* (its
+docks and central widget) gets rebuilt, and only when it's stale for the currently open project
+(`MainWindow._activate_workspace`, tracked via a per-workspace/per-project "generation" counter).
+This means switching between workspaces preserves scroll position, selection, and in-progress
+search rather than resetting it - the previous implementation destroyed and rebuilt every panel
+on every switch, via a single set of dock widgets shared across all workspaces and a dropdown to
+pick which one was live. The standalone plugin host, which only ever shows one workspace, still
+docks panels directly on its own top-level `QMainWindow` - there's no nested window there because
+there's nothing to switch between.
+
 ## Cross-cutting UI behavior without core changes
 
 Some plugin UI behavior needs to reach outside the plugin's own panels - Manuscript's focus
-mode hides every *other* dock widget; toggling its inspector needs to find a dock by ID. Rather
-than adding a manuscript-specific hook to `MainWindow`, this is done through Qt's own generic
-widget-tree APIs: `self.window().findChildren(QDockWidget)` to enumerate every dock regardless
-of which plugin owns it, and `self.window().findChild(QDockWidget, "dock.<panel_id>")` to find
-one by the same panel ID already used for registration. This works identically inside the full
-application shell and the standalone plugin host, and needs zero changes to `core/` or
-`MainWindow` - it's a pattern any future plugin can reuse for similar cross-cutting behavior
-instead of asking for a new core extension point.
+mode hides every *other* dock widget in its own workspace; toggling its inspector needs to find
+a dock by ID. Rather than adding a manuscript-specific hook to `MainWindow`, this is done through
+Qt's own generic widget-tree APIs: `find_enclosing_main_window(self).findChildren(QDockWidget)`
+to enumerate every dock in the panel's own enclosing window, and
+`find_enclosing_main_window(self).findChild(QDockWidget, "dock.<panel_id>")` to find one by the
+same panel ID already used for registration. `find_enclosing_main_window`
+(`core/workspaces/panels.py`) walks up to the *nearest* `QMainWindow` ancestor rather than using
+`widget.window()`, specifically because of the nested-`QMainWindow`-per-workspace-tab structure
+described above: `widget.window()` would resolve past the panel's own workspace to the app's
+actual top-level window and search every workspace's docks at once, not just this one's. This
+works correctly in both the full application shell (where the nearest ancestor is the panel's own
+workspace page) and the standalone plugin host (where it's the same window `widget.window()`
+would have found anyway, since the host's `QMainWindow` really is top-level) - and needs zero
+further changes to `core/` or `MainWindow` beyond that one helper, so it's a pattern any future
+plugin can reuse for similar cross-cutting behavior instead of asking for a new core extension
+point.
 
 ## Storage ownership
 

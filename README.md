@@ -54,8 +54,10 @@ Skrybe Studio is designed around a small, stable core and independently develope
   command palette search.
 - `.skrybe` project format: create / open / close / validate, recent-projects tracking.
 - A small, testable plugin migration coordinator (full Alembic integration deferred).
-- Workspace and panel registries; a Qt Widgets main window shell with docking, project dialogs,
-  a plugin manager dialog, and light/dark/system theming driven by centralized design tokens.
+- Workspace and panel registries; a Qt Widgets main window shell with tab-based workspace
+  switching (each workspace's panels build once and persist across switches), docking, project
+  dialogs, a plugin manager dialog, and light/dark/system theming driven by centralized design
+  tokens.
 - Background job abstraction (Qt thread pool) with cooperative cancellation.
 - An undo/redo abstraction (Qt's `QUndoStack` behind a Qt-free domain contract).
 - **Notes** reference plugin: create/rename/edit/delete notes, tags, word count, search

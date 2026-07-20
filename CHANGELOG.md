@@ -32,13 +32,12 @@ will adopt [Semantic Versioning](https://semver.org/) once it reaches 1.0.
   adapter; Manuscript consumes it for cover images.
 - Lightweight, dependency-free fuzzy matching (`core/commands/fuzzy.py`) for the command
   palette, replacing plain substring filtering.
-
-### Fixed
-
-- `MainWindow._switch_workspace()` recursively rebuilt every workspace's panels twice: the
-  final `setCurrentIndex()` call on the workspace combo box wasn't guarded with
-  `blockSignals()`, so it re-triggered `_switch_workspace()` via the combo's own
-  `currentIndexChanged` signal.
+- Tab-based workspace switching: each workspace is now a persistent tab whose panels are built
+  once and cached (rebuilt only when the open project changes), replacing the dropdown that
+  destroyed and rebuilt every panel - including scroll position, selection, and search text -
+  on every switch. `find_enclosing_main_window()` (`core/workspaces/panels.py`) lets a plugin
+  find the dock layout it belongs to for cross-cutting behavior like Manuscript's focus mode,
+  scoped correctly to its own workspace tab rather than every workspace's docks at once.
 
 ## [0.1.0] - 2026-07-20
 

@@ -12,26 +12,27 @@ import logging
 from pathlib import Path
 
 from PySide6.QtCore import QByteArray, Qt
-from PySide6.QtGui import QActionGroup, QCloseEvent, QKeySequence
+from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
-    QComboBox,
     QDialog,
     QDockWidget,
     QLabel,
     QMainWindow,
     QMessageBox,
-    QStackedWidget,
     QStatusBar,
+    QTabWidget,
     QToolBar,
     QVBoxLayout,
     QWidget,
 )
 
+from skrybe_studio import __version__
 from skrybe_studio.app.bootstrap import Application
 from skrybe_studio.core.errors import set_error_presenter
 from skrybe_studio.core.projects.errors import ProjectError
 from skrybe_studio.core.themes.manager import ThemeMode
 from skrybe_studio.core.themes.tokens import DesignTokens
+from skrybe_studio.core.workspaces.models import Workspace
 from skrybe_studio.ui.design_tokens import build_stylesheet
 from skrybe_studio.ui.dialogs.command_palette import CommandPalette
 from skrybe_studio.ui.dialogs.create_project_dialog import CreateProjectDialog
@@ -54,7 +55,6 @@ class MainWindow(QMainWindow):
     def __init__(self, application: Application) -> None:
         super().__init__()
         self._app = application
-        self._dock_widgets: list[QDockWidget] = []
 
         self.setWindowTitle("Skrybe Studio")
         self.resize(1280, 820)
@@ -136,24 +136,34 @@ class MainWindow(QMainWindow):
         toolbar.addAction("Open Project", self._on_open_project)
         toolbar.addSeparator()
         toolbar.addAction("Command Palette", self._on_command_palette)
-        toolbar.addSeparator()
-
-        self._workspace_combo = QComboBox()
-        # AdjustToContents (rather than the default AdjustToContentsOnFirstShow)
-        # keeps the box sized to whatever the longest current item needs,
-        # even if workspaces are added/renamed after the first show. The
-        # minimum width is a floor so it never looks cramped with only the
-        # default single short-named workspace registered.
-        self._workspace_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        self._workspace_combo.setMinimumWidth(140)
-        self._workspace_combo.currentIndexChanged.connect(self._on_workspace_combo_changed)
-        toolbar.addWidget(self._workspace_combo)
 
     def _build_central_area(self) -> None:
-        self._central_stack = QStackedWidget()
-        self._welcome_widget = self._build_welcome_widget()
-        self._central_stack.addWidget(self._welcome_widget)
-        self.setCentralWidget(self._central_stack)
+        # Each workspace gets one tab, and each tab's content is a per-workspace
+        # QMainWindow embedded as a plain child widget (Qt.WindowType.Widget
+        # clears the top-level-window flag QMainWindow sets by default) so its
+        # dock widgets are scoped to that workspace rather than living on this
+        # outer window directly. Tabs - and their QMainWindow pages - are
+        # created once and kept alive for the lifetime of the app; only their
+        # *content* (docks + central widget) is rebuilt, and only when it's
+        # stale for the current project - see `_activate_workspace`. This is
+        # what lets switching workspaces preserve scroll position, selection,
+        # and search text instead of resetting them on every switch.
+        self._workspace_tabs = QTabWidget()
+        self._workspace_tabs.setDocumentMode(True)
+        self.setCentralWidget(self._workspace_tabs)
+
+        self._workspace_pages: dict[str, QMainWindow] = {}
+        self._page_generation: dict[str, int] = {}
+        self._project_generation = 0
+
+        for workspace in self._app.workspaces.all():
+            page = QMainWindow()
+            page.setWindowFlags(Qt.WindowType.Widget)
+            index = self._workspace_tabs.addTab(page, workspace.title)
+            self._workspace_tabs.tabBar().setTabData(index, workspace.id)
+            self._workspace_pages[workspace.id] = page
+
+        self._workspace_tabs.currentChanged.connect(self._on_tab_changed)
 
     def _build_welcome_widget(self) -> QWidget:
         widget = QWidget()
@@ -178,8 +188,7 @@ class MainWindow(QMainWindow):
 
     def _refresh_workspace_menu(self) -> None:
         self._workspace_menu.clear()
-        self._workspace_combo.blockSignals(True)
-        self._workspace_combo.clear()
+        self._workspace_menu_actions: dict[str, QAction] = {}
         group = QActionGroup(self)
         group.setExclusive(True)
         for workspace in self._app.workspaces.all():
@@ -187,62 +196,87 @@ class MainWindow(QMainWindow):
             action.setCheckable(True)
             action.triggered.connect(lambda _checked, wid=workspace.id: self._switch_workspace(wid))
             group.addAction(action)
-            self._workspace_combo.addItem(workspace.title, workspace.id)
-        self._workspace_combo.blockSignals(False)
+            self._workspace_menu_actions[workspace.id] = action
 
-    def _on_workspace_combo_changed(self, index: int) -> None:
-        workspace_id = self._workspace_combo.itemData(index)
+    def _on_tab_changed(self, index: int) -> None:
+        if index < 0:
+            return
+        workspace_id = self._workspace_tabs.tabBar().tabData(index)
         if workspace_id:
-            self._switch_workspace(workspace_id)
+            self._activate_workspace(workspace_id)
 
     def _switch_workspace(self, workspace_id: str) -> None:
+        self._activate_workspace(workspace_id)
+
+    def _activate_workspace(self, workspace_id: str) -> None:
+        """Make `workspace_id` the active, visible tab, rebuilding its content first if stale.
+
+        This is the single path that both a direct tab-bar click
+        (`_on_tab_changed`) and a programmatic switch (menu action, project
+        open/close) go through, so there's exactly one place that decides
+        whether a workspace's panels need rebuilding - no risk of the two
+        triggers disagreeing or double-building, the recursive bug this
+        replaced.
+        """
         workspace = self._app.workspaces.get(workspace_id)
-        if workspace is None:
+        page = self._workspace_pages.get(workspace_id)
+        if workspace is None or page is None:
             return
+
+        if self._page_generation.get(workspace_id) != self._project_generation:
+            self._populate_workspace_page(workspace, page)
+            self._page_generation[workspace_id] = self._project_generation
+
         self._app.workspaces.set_active(workspace_id)
-        self._teardown_dock_widgets()
+        self._app.settings.set_app("last_workspace", workspace_id)
+        action = self._workspace_menu_actions.get(workspace_id)
+        if action is not None:
+            action.setChecked(True)
+
+        if self._workspace_tabs.currentWidget() is not page:
+            # Fires currentChanged -> _on_tab_changed -> this method again;
+            # by then both generation and active-workspace state already
+            # match, so the re-entrant call is a harmless no-op.
+            self._workspace_tabs.setCurrentWidget(page)
+
+    def _populate_workspace_page(self, workspace: Workspace, page: QMainWindow) -> None:
+        self._clear_page_content(page)
 
         for placement in workspace.panels:
             try:
                 widget = self._app.panels.create(placement.panel_id)
             except KeyError:
                 logger.warning(
-                    "Workspace '%s' references unknown panel '%s'", workspace_id, placement.panel_id
+                    "Workspace '%s' references unknown panel '%s'", workspace.id, placement.panel_id
                 )
                 continue
             dock = QDockWidget(self._app.panels.title_for(placement.panel_id))
             dock.setObjectName(f"dock.{placement.panel_id}")
             dock.setWidget(widget)
             area = _AREA_MAP.get(placement.area, Qt.DockWidgetArea.LeftDockWidgetArea)
-            self.addDockWidget(area, dock)
-            self._dock_widgets.append(dock)
+            page.addDockWidget(area, dock)
 
+        central_widget: QWidget | None = None
         if workspace.central_panel_id is not None:
             try:
                 central_widget = self._app.panels.create(workspace.central_panel_id)
-                self._central_stack.addWidget(central_widget)
-                self._central_stack.setCurrentWidget(central_widget)
             except KeyError:
-                self._central_stack.setCurrentWidget(self._welcome_widget)
-        else:
-            self._central_stack.setCurrentWidget(self._welcome_widget)
+                logger.warning(
+                    "Workspace '%s' references unknown central panel '%s'",
+                    workspace.id,
+                    workspace.central_panel_id,
+                )
+        page.setCentralWidget(
+            central_widget if central_widget is not None else self._build_welcome_widget()
+        )
 
-        index = self._workspace_combo.findData(workspace_id)
-        if index >= 0:
-            # Block signals: setCurrentIndex would otherwise fire
-            # currentIndexChanged -> _on_workspace_combo_changed -> a second,
-            # redundant call back into this same method, double-building
-            # every panel in the workspace.
-            self._workspace_combo.blockSignals(True)
-            self._workspace_combo.setCurrentIndex(index)
-            self._workspace_combo.blockSignals(False)
-        self._app.settings.set_app("last_workspace", workspace_id)
-
-    def _teardown_dock_widgets(self) -> None:
-        for dock in self._dock_widgets:
-            self.removeDockWidget(dock)
+    def _clear_page_content(self, page: QMainWindow) -> None:
+        for dock in page.findChildren(QDockWidget):
+            page.removeDockWidget(dock)
             dock.deleteLater()
-        self._dock_widgets.clear()
+        old_central = page.takeCentralWidget()
+        if old_central is not None:
+            old_central.deleteLater()
 
     # --- project actions ---------------------------------------------------
 
@@ -280,6 +314,11 @@ class MainWindow(QMainWindow):
 
     def _on_project_opened(self) -> None:
         self._refresh_recent_menu()
+        # A new project means every cached workspace page's panels are bound
+        # to the previous project's (now closed) plugin services. Bumping the
+        # generation marks them all stale; only the workspace we switch to
+        # rebuilds immediately, the rest lazily rebuild on next visit.
+        self._project_generation += 1
         active = self._app.workspaces.active
         self._switch_workspace(active.id if active else _DEFAULT_WORKSPACE_ID)
         self._update_status_bar()
@@ -287,6 +326,7 @@ class MainWindow(QMainWindow):
     def _on_close_project(self) -> None:
         self._app.close_project()
         self._update_status_bar()
+        self._project_generation += 1
         self._switch_workspace(_DEFAULT_WORKSPACE_ID)
 
     def _refresh_recent_menu(self) -> None:
@@ -312,7 +352,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About Skrybe Studio",
-            "Skrybe Studio 0.1.0\n"
+            f"Skrybe Studio {__version__}\n"
             "A desktop-first creative operating system for writers.\n\n"
             "https://github.com/adeptus-craftmatica/skrybe-studio",
         )

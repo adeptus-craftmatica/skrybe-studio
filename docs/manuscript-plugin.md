@@ -79,8 +79,10 @@ Typewriter scrolling's target-offset math (`ui/editor/typewriter.py`) is a pure 
 widget dependency, so it's tested without a `QTextEdit` at all.
 
 Focus mode and the inspector-toggle command don't reach into `MainWindow` - they use
-`self.window().findChildren(QDockWidget)` / `findChild(QDockWidget, "dock.manuscript.inspector")`
-to find dock widgets generically by the same panel ID already used at registration time. See
+`find_enclosing_main_window(self).findChildren(QDockWidget)` /
+`findChild(QDockWidget, "dock.manuscript.inspector")` (`core/workspaces/panels.py`) to find dock
+widgets generically by the same panel ID already used at registration time, scoped to
+Manuscript's own workspace rather than every workspace's docks at once. See
 [`docs/architecture.md`](architecture.md#cross-cutting-ui-behavior-without-core-changes) for why
 this avoids adding a manuscript-specific hook to core UI.
 

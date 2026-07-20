@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 
 from skrybe_studio.core.workspaces.models import PanelPlacement, Workspace
-from skrybe_studio.core.workspaces.panels import DuplicatePanelError, PanelRegistry
+from skrybe_studio.core.workspaces.panels import (
+    DuplicatePanelError,
+    PanelRegistry,
+    find_enclosing_main_window,
+)
 from skrybe_studio.core.workspaces.registry import DuplicateWorkspaceError, WorkspaceRegistry
 
 
@@ -79,3 +83,37 @@ def test_panel_registry_unknown_panel_raises(qapp) -> None:
     registry = PanelRegistry()
     with pytest.raises(KeyError):
         registry.create("does-not-exist")
+
+
+def test_find_enclosing_main_window_returns_none_without_an_ancestor(qapp) -> None:
+    from PySide6.QtWidgets import QWidget
+
+    widget = QWidget()
+    assert find_enclosing_main_window(widget) is None
+
+
+def test_find_enclosing_main_window_finds_a_direct_ancestor(qapp) -> None:
+    from PySide6.QtWidgets import QLabel, QMainWindow
+
+    main_window = QMainWindow()
+    label = QLabel()
+    main_window.setCentralWidget(label)
+
+    assert find_enclosing_main_window(label) is main_window
+
+
+def test_find_enclosing_main_window_finds_the_nearest_not_the_outermost(qapp) -> None:
+    """A panel nested inside a per-workspace QMainWindow (itself embedded in the
+    app's real top-level QMainWindow) must resolve to its own workspace's
+    window, not the app's - otherwise dock-scoped behavior like focus mode
+    would reach across every workspace instead of just its own.
+    """
+    from PySide6.QtWidgets import QLabel, QMainWindow
+
+    outer = QMainWindow()
+    inner = QMainWindow()
+    label = QLabel()
+    inner.setCentralWidget(label)
+    outer.setCentralWidget(inner)
+
+    assert find_enclosing_main_window(label) is inner
