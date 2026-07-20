@@ -1,0 +1,17 @@
+{
+  "id": "com.adeptus-craftmatica.skrybe.manuscript",
+  "name": "Manuscript",
+  "version": "0.2.0",
+  "api_version": "1",
+  "description": "Binder-organized manuscript writing: hierarchy, editor, snapshots, search, and export.",
+  "author": "adeptus-craftmatica",
+  "entrypoint": "skrybe_studio.plugins.manuscript.plugin:ManuscriptPlugin",
+  "capabilities": [
+    "workspace.panel",
+    "entity.provider",
+    "command.provider",
+    "search.provider"
+  ],
+  "requires": [],
+  "optional_requires": []
+}
