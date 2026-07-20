@@ -1,0 +1,17 @@
+{
+  "id": "com.adeptus-craftmatica.skrybe.assets",
+  "name": "Asset Library",
+  "version": "0.1.0",
+  "api_version": "1",
+  "description": "Import, organize, and manage project-local asset files.",
+  "author": "adeptus-craftmatica",
+  "entrypoint": "skrybe_studio.plugins.assets.plugin:AssetsPlugin",
+  "capabilities": [
+    "workspace.panel",
+    "entity.provider",
+    "command.provider",
+    "search.provider"
+  ],
+  "requires": [],
+  "optional_requires": []
+}
