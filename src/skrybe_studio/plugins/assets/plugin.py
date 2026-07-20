@@ -8,10 +8,12 @@ from uuid import UUID
 
 from PySide6.QtWidgets import QFileDialog
 
+from skrybe_studio.core.contracts.asset_lookup import AssetLookup
 from skrybe_studio.core.contracts.command import Command
 from skrybe_studio.core.plugins.base import Plugin
 from skrybe_studio.core.plugins.context import PluginContext, ProjectContext
 from skrybe_studio.core.workspaces.models import PanelPlacement, Workspace
+from skrybe_studio.plugins.assets.application.lookup_adapter import AssetLookupAdapter
 from skrybe_studio.plugins.assets.application.search_provider import AssetsSearchProvider
 from skrybe_studio.plugins.assets.application.service import AssetsService
 from skrybe_studio.plugins.assets.domain.asset import PLUGIN_ID
@@ -29,6 +31,7 @@ class AssetsPlugin(Plugin):
     def __init__(self) -> None:
         self._context: PluginContext | None = None
         self._search_provider: AssetsSearchProvider | None = None
+        self._lookup_adapter: AssetLookupAdapter | None = None
         self.service: AssetsService | None = None
         self.selected_asset_id: UUID | None = None
 
@@ -90,12 +93,17 @@ class AssetsPlugin(Plugin):
         )
         self._search_provider = AssetsSearchProvider(repository)
         self._context.search.register_provider(self._search_provider)
+        self._lookup_adapter = AssetLookupAdapter(self.service)
+        self._context.services.register(AssetLookup, self._lookup_adapter)
         logger.info("Assets plugin activated")
 
     def deactivate(self, context: ProjectContext) -> None:
-        if self._context is not None and self._search_provider is not None:
-            self._context.search.unregister_provider(self._search_provider)
+        if self._context is not None:
+            if self._search_provider is not None:
+                self._context.search.unregister_provider(self._search_provider)
+            self._context.services.unregister(AssetLookup)
         self._search_provider = None
+        self._lookup_adapter = None
         self.service = None
         self.selected_asset_id = None
         logger.info("Assets plugin deactivated")
