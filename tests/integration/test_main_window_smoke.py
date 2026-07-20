@@ -96,51 +96,6 @@ def test_reopening_a_project_rebuilds_stale_workspace_content(
     assert first_central is not second_central
 
 
-def test_project_switch_persists_the_previous_workspace_layout(
-    loaded_application: Application, qtbot, project_root: Path, tmp_path: Path
-) -> None:
-    """A dock layout the user customized (resized/moved panels) must survive
-    a project switch, not just an in-session tab switch - it's captured
-    right before a stale workspace page is rebuilt (see
-    `MainWindow._populate_workspace_page`).
-    """
-    window = MainWindow(loaded_application)
-    qtbot.addWidget(window)
-    window.show()
-
-    loaded_application.create_project(project_root, "Layout Test")
-    window._on_project_opened()
-    window._switch_workspace("notes")
-
-    # First-ever build: nothing to capture yet, so nothing should be saved -
-    # otherwise this would clobber a real saved layout from a prior session.
-    assert loaded_application.settings.get_app("workspace_layout.notes") is None
-
-    window._on_close_project()
-    second_root = tmp_path / "SecondProject"
-    loaded_application.create_project(second_root, "Second Project")
-    window._on_project_opened()
-    window._switch_workspace("notes")
-
-    assert loaded_application.settings.get_app("workspace_layout.notes") is not None
-
-
-def test_closing_the_app_saves_every_built_workspace_layout(
-    loaded_application: Application, qtbot, project_root: Path
-) -> None:
-    window = MainWindow(loaded_application)
-    qtbot.addWidget(window)
-    window.show()
-
-    loaded_application.create_project(project_root, "Close Save Test")
-    window._on_project_opened()
-    window._switch_workspace("notes")
-
-    window.close()
-
-    assert loaded_application.settings.get_app("workspace_layout.notes") is not None
-
-
 def test_main_window_launches_even_if_a_plugin_fails_to_register(
     application: Application, monkeypatch: pytest.MonkeyPatch, qtbot
 ) -> None:

@@ -244,12 +244,6 @@ class MainWindow(QMainWindow):
             self._workspace_tabs.setCurrentWidget(page)
 
     def _populate_workspace_page(self, workspace: Workspace, page: QMainWindow) -> None:
-        # Only capture layout if this page already has real docks - the very
-        # first build of a workspace has none yet, and saving that empty
-        # state would clobber whatever was persisted from a previous session
-        # before we ever get a chance to restore it below.
-        if page.findChildren(QDockWidget):
-            self._save_workspace_layout(workspace.id, page)
         self._clear_page_content(page)
 
         for placement in workspace.panels:
@@ -279,18 +273,6 @@ class MainWindow(QMainWindow):
         page.setCentralWidget(
             central_widget if central_widget is not None else self._build_welcome_widget()
         )
-        self._restore_workspace_layout(workspace.id, page)
-
-    def _save_workspace_layout(self, workspace_id: str, page: QMainWindow) -> None:
-        self._app.settings.set_app(
-            f"workspace_layout.{workspace_id}",
-            base64.b64encode(page.saveState().data()).decode("ascii"),
-        )
-
-    def _restore_workspace_layout(self, workspace_id: str, page: QMainWindow) -> None:
-        state_b64 = self._app.settings.get_app(f"workspace_layout.{workspace_id}")
-        if state_b64:
-            page.restoreState(QByteArray(base64.b64decode(state_b64)))
 
     def _clear_page_content(self, page: QMainWindow) -> None:
         for dock in page.findChildren(QDockWidget):
@@ -409,7 +391,5 @@ class MainWindow(QMainWindow):
         self._app.settings.set_app(
             "window.state", base64.b64encode(self.saveState().data()).decode("ascii")
         )
-        for workspace_id, page in self._workspace_pages.items():
-            self._save_workspace_layout(workspace_id, page)
         self._app.shutdown()
         super().closeEvent(event)

@@ -146,13 +146,15 @@ pick which one was live. The standalone plugin host, which only ever shows one w
 docks panels directly on its own top-level `QMainWindow` - there's no nested window there because
 there's nothing to switch between.
 
-Each workspace page's dock geometry (panel sizes and positions) is persisted to app-scoped
-settings under `workspace_layout.<workspace_id>`, captured right before a stale page is rebuilt
-(`_populate_workspace_page`, guarded so the very first build of a workspace never overwrites a
-previously saved layout with an empty one) and again for every page on app close
-(`MainWindow.closeEvent`). This is what lets a resized panel survive both a mid-session project
-switch and a full app restart, using the same `QMainWindow.saveState()`/`restoreState()`
-mechanism the outer window already used for its own geometry.
+Per-workspace dock geometry (panel sizes/positions) is **not** persisted across app restarts.
+This was attempted via `QMainWindow.saveState()`/`restoreState()` on each embedded workspace
+page - the same mechanism the outer window uses for its own geometry - but `restoreState()`
+applied to a *non-top-level*, embedded `QMainWindow` produced incorrect dock proportions on the
+next launch (a dock could claim most of the window's width instead of its saved share). Dock
+sizing resets to each workspace's registration-order default on every app launch instead;
+within a single running session, resizing is preserved automatically by the tab-caching
+described above (nothing is rebuilt, so nothing is lost) - only surviving a full restart is
+unsupported for now.
 
 ## Reopening the last project
 
