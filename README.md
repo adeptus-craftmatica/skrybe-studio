@@ -101,6 +101,22 @@ uv run ruff check .
 uv run pyright
 ```
 
+## Releasing
+
+Maintainers cut a release with:
+
+```bash
+uv run python release.py
+```
+
+This builds a PyInstaller bundle for the current platform, packages it (`.dmg` on macOS, `.zip`
+on Windows, `.tar.gz` on Linux), bumps the version in `pyproject.toml`, `src/skrybe_studio/
+__init__.py`, and `SkrybeStudio.spec`, commits, tags `vX.Y.Z`, and pushes. Pushing the tag
+triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds all
+three platforms on their native GitHub-hosted runners and attaches the artifacts to a GitHub
+Release. Builds are currently unsigned - macOS will show a Gatekeeper warning and Windows a
+SmartScreen warning until code signing is added.
+
 ## Architecture
 
 See [`docs/architecture.md`](docs/architecture.md) for the full core/plugin architecture,

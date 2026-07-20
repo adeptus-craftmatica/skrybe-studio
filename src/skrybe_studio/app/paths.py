@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,6 +25,17 @@ class ApplicationPaths:
 
     @property
     def builtin_plugins_dir(self) -> Path:
+        """Directory containing the built-in plugin packages (each with a manifest.json).
+
+        A `__file__`-relative path is unreliable inside a frozen PyInstaller
+        bundle - PyInstaller's module loader does not guarantee `__file__`
+        resolves to a real sibling directory. When frozen, resolve against
+        `sys._MEIPASS` (onefile) / the executable's directory (onedir)
+        instead, where the packaged `skrybe_studio/plugins` data lives.
+        """
+        if getattr(sys, "frozen", False):
+            base = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+            return base / "skrybe_studio" / "plugins"
         return Path(__file__).resolve().parent.parent / "plugins"
 
 
