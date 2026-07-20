@@ -1,0 +1,46 @@
+name: Plugin proposal
+description: Propose a new plugin for Skrybe Studio (e.g. manuscript editor, story bible, timelines).
+title: "[Plugin]: "
+labels: ["plugin-proposal"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Plugin name
+    validations:
+      required: true
+
+  - type: textarea
+    id: purpose
+    attributes:
+      label: What does this plugin do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: entities
+    attributes:
+      label: What entity types will it own?
+      description: e.g. `timeline.event`, `storybible.character`.
+
+  - type: textarea
+    id: cross-plugin
+    attributes:
+      label: How will it interact with other plugins?
+      description: Must be via entity IDs, events, service interfaces, capability registration, or commands - never by importing another plugin's implementation classes directly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: storage
+    attributes:
+      label: What will it store, and how?
+      description: Plugin-owned tables via its own DeclarativeBase, plus any files under the project's managed directories.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I've read docs/architecture.md and docs/plugin-development.md
+        - label: This does not require changes to core/

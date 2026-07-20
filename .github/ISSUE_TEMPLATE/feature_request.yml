@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest an improvement to an existing feature or capability.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Does this belong in the core, or in a plugin?
+      description: See docs/architecture.md - the core has no feature-specific knowledge.
+      options:
+        - Core platform
+        - Existing plugin
+        - New plugin
+        - Not sure
+    validations:
+      required: true
