@@ -14,7 +14,7 @@ def main() -> int:
     qt_app = QApplication(sys.argv)
     qt_app.setApplicationName("Skrybe Studio")
     qt_app.setOrganizationName("adeptus-craftmatica")
-    qt_app.setApplicationVersion("0.1.0")
+    qt_app.setApplicationVersion("0.2.0")
 
     application = Application()
     application.load_plugins()
