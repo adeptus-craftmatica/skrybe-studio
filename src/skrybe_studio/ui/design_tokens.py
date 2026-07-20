@@ -16,9 +16,13 @@ def build_stylesheet(tokens: DesignTokens) -> str:
     t = tokens.typography
     r = tokens.radius
     s = tokens.spacing
+    # Only override font-family when a real, installed font name is set -
+    # otherwise leave Qt's native per-platform default font alone (see the
+    # comment on TypographyTokens.font_family for why).
+    font_family_rule = f"font-family: {t.font_family};" if t.font_family else ""
     return f"""
     QWidget {{
-        font-family: {t.font_family};
+        {font_family_rule}
         font-size: {t.size_body}px;
         color: {c.text};
     }}
@@ -63,12 +67,28 @@ def build_stylesheet(tokens: DesignTokens) -> str:
         background: {c.surface_alt};
         padding: {s.xs}px {s.sm}px;
     }}
-    QLineEdit, QTextEdit, QPlainTextEdit, QListView, QTreeView, QComboBox, QSpinBox {{
+    QLineEdit, QTextEdit, QPlainTextEdit, QListView, QTreeView, QSpinBox {{
         background: {c.surface};
         border: 1px solid {c.border};
         border-radius: {r.sm}px;
         padding: {s.xs}px;
         selection-background-color: {c.selection};
+    }}
+    QComboBox {{
+        background: {c.surface};
+        border: 1px solid {c.border};
+        border-radius: {r.sm}px;
+        /* Extra right padding reserves room for the drop-down arrow - without
+           it, uniform padding shrinks the visible text area and Qt's
+           sizeHint() doesn't compensate, clipping the current item's text. */
+        padding: {s.xs}px {s.lg}px {s.xs}px {s.sm}px;
+        selection-background-color: {c.selection};
+    }}
+    QComboBox::drop-down {{
+        subcontrol-origin: padding;
+        subcontrol-position: top right;
+        width: {s.lg}px;
+        border: none;
     }}
     QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus {{
         border: 1px solid {c.accent};

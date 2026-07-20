@@ -26,7 +26,14 @@ class RadiusTokens:
 
 @dataclass(frozen=True, slots=True)
 class TypographyTokens:
-    font_family: str = "-apple-system, 'Segoe UI', Inter, sans-serif"
+    # Empty means "don't override" - Qt already selects the correct native UI
+    # font per platform. A CSS-style web font stack (e.g. "-apple-system, ...,
+    # sans-serif") looks reasonable but Qt Style Sheets resolve font-family
+    # differently than CSS: "-apple-system" isn't a real font name Qt can find,
+    # and the generic "sans-serif" keyword forces a slow font-alias-population
+    # pass on every launch with a "missing font family" warning. Only set this
+    # to a real, installed font name (e.g. once a bundled font ships).
+    font_family: str = ""
     size_small: int = 11
     size_body: int = 13
     size_heading: int = 15

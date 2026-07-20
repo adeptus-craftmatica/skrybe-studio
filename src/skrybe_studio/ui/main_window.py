@@ -139,6 +139,13 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
 
         self._workspace_combo = QComboBox()
+        # AdjustToContents (rather than the default AdjustToContentsOnFirstShow)
+        # keeps the box sized to whatever the longest current item needs,
+        # even if workspaces are added/renamed after the first show. The
+        # minimum width is a floor so it never looks cramped with only the
+        # default single short-named workspace registered.
+        self._workspace_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self._workspace_combo.setMinimumWidth(140)
         self._workspace_combo.currentIndexChanged.connect(self._on_workspace_combo_changed)
         toolbar.addWidget(self._workspace_combo)
 
