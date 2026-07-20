@@ -1,0 +1,17 @@
+{
+  "id": "com.adeptus-craftmatica.skrybe.notes",
+  "name": "Notes",
+  "version": "0.1.0",
+  "api_version": "1",
+  "description": "Create and organize project notes.",
+  "author": "adeptus-craftmatica",
+  "entrypoint": "skrybe_studio.plugins.notes.plugin:NotesPlugin",
+  "capabilities": [
+    "workspace.panel",
+    "entity.provider",
+    "command.provider",
+    "search.provider"
+  ],
+  "requires": [],
+  "optional_requires": []
+}
