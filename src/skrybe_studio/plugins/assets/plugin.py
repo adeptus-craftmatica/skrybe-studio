@@ -10,6 +10,8 @@ from PySide6.QtWidgets import QFileDialog
 
 from skrybe_studio.core.contracts.asset_lookup import AssetLookup
 from skrybe_studio.core.contracts.command import Command
+from skrybe_studio.core.entities.relationships import RelationshipService
+from skrybe_studio.core.entities.service import EntityService
 from skrybe_studio.core.plugins.base import Plugin
 from skrybe_studio.core.plugins.context import PluginContext, ProjectContext
 from skrybe_studio.core.workspaces.models import PanelPlacement, Workspace
@@ -33,6 +35,8 @@ class AssetsPlugin(Plugin):
         self._search_provider: AssetsSearchProvider | None = None
         self._lookup_adapter: AssetLookupAdapter | None = None
         self.service: AssetsService | None = None
+        self.entities: EntityService | None = None
+        self.relationships: RelationshipService | None = None
         self.selected_asset_id: UUID | None = None
 
     def register(self, context: PluginContext) -> None:
@@ -91,6 +95,8 @@ class AssetsPlugin(Plugin):
             assets_dir,
             cache_dir,
         )
+        self.entities = context.entities
+        self.relationships = context.relationships
         self._search_provider = AssetsSearchProvider(repository)
         self._context.search.register_provider(self._search_provider)
         self._lookup_adapter = AssetLookupAdapter(self.service)
@@ -105,6 +111,8 @@ class AssetsPlugin(Plugin):
         self._search_provider = None
         self._lookup_adapter = None
         self.service = None
+        self.entities = None
+        self.relationships = None
         self.selected_asset_id = None
         logger.info("Assets plugin deactivated")
 
