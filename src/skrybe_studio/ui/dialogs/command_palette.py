@@ -1,10 +1,11 @@
-"""A minimal command palette: substring filter over every registered command."""
+"""A command palette: fuzzy filter over every registered command."""
 
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QLineEdit, QListWidget, QListWidgetItem, QVBoxLayout, QWidget
 
+from skrybe_studio.core.commands.fuzzy import fuzzy_match
 from skrybe_studio.core.commands.registry import CommandRegistry
 
 
@@ -32,12 +33,22 @@ class CommandPalette(QDialog):
 
     def _refresh(self, text: str) -> None:
         self._list.clear()
-        needle = text.strip().lower()
+        needle = text.strip()
+
+        scored: list[tuple[float, str, str]] = []
         for command in self._commands.all():
-            if needle in command.title.lower() or needle in command.id.lower():
-                item = QListWidgetItem(f"{command.title}   ({command.category})")
-                item.setData(Qt.ItemDataRole.UserRole, command.id)
-                self._list.addItem(item)
+            title_match = fuzzy_match(needle, command.title)
+            id_match = fuzzy_match(needle, command.id)
+            if not (title_match.matched or id_match.matched):
+                continue
+            best_score = max(title_match.score, id_match.score)
+            scored.append((best_score, command.id, f"{command.title}   ({command.category})"))
+
+        scored.sort(key=lambda entry: entry[0], reverse=True)
+        for _score, command_id, label in scored:
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, command_id)
+            self._list.addItem(item)
 
     def _execute_item(self, item: QListWidgetItem) -> None:
         command_id = item.data(Qt.ItemDataRole.UserRole)
