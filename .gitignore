@@ -1,0 +1,75 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- uv ---
+.uv/
+
+# --- Testing / coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# --- Type checking / linting ---
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# --- PyCharm / JetBrains ---
+.idea/
+
+# --- VS Code ---
+.vscode/
+!.vscode/extensions.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Skrybe Studio runtime/user data ---
+*.skrybe/
+!tests/**/*.skrybe/
+.skrybe-studio/
+skrybe-studio.local.*
+
+# --- Secrets ---
+.env
+.env.*
+*.key
+*.pem
+secrets.json
+
+# --- Local scratch ---
+/scratch/
+/tmp/
