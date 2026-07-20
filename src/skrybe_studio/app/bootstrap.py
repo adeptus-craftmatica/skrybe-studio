@@ -18,6 +18,7 @@ from skrybe_studio.core.jobs.manager import JobManager
 from skrybe_studio.core.logging_config import configure_logging
 from skrybe_studio.core.plugins.context import PluginContext, ProjectContext
 from skrybe_studio.core.plugins.loader import LoadedPlugin, PluginLoader, PluginLoadFailure
+from skrybe_studio.core.projects.errors import ProjectError
 from skrybe_studio.core.projects.service import OpenProject, ProjectService
 from skrybe_studio.core.search.service import SearchService
 from skrybe_studio.core.services.container import ServiceContainer
@@ -28,6 +29,7 @@ from skrybe_studio.core.workspaces.panels import PanelRegistry
 from skrybe_studio.core.workspaces.registry import WorkspaceRegistry
 
 DEFAULT_WORKSPACE_ID = "default"
+_LAST_OPEN_PROJECT_SETTING = "last_open_project_path"
 
 logger = logging.getLogger(__name__)
 
@@ -125,14 +127,36 @@ class Application:
     def create_project(self, root: Path, name: str) -> OpenProject:
         project = self.projects.create(root, name)
         self._activate_plugins(project)
+        self.settings.set_app(_LAST_OPEN_PROJECT_SETTING, str(project.paths.root))
         return project
 
     def open_project(self, root: Path) -> OpenProject:
         project = self.projects.open(root)
         self._activate_plugins(project)
+        self.settings.set_app(_LAST_OPEN_PROJECT_SETTING, str(project.paths.root))
         return project
 
-    def close_project(self) -> None:
+    def reopen_last_project(self) -> OpenProject | None:
+        """Reopens whatever project was open when the app last quit, if any.
+
+        Distinct from the "Open Recent" list (`ProjectService.recent_projects`),
+        which keeps history of every project ever opened: this tracks only
+        "was a project open at the moment the app last closed," so an
+        explicit File > Close Project (`close_project(forget=True)`) means
+        the next launch starts at the welcome screen instead, matching how
+        most document-based apps behave.
+        """
+        raw_path = self.settings.get_app(_LAST_OPEN_PROJECT_SETTING)
+        if not raw_path:
+            return None
+        try:
+            return self.open_project(Path(raw_path))
+        except ProjectError:
+            logger.warning("Could not reopen last project at '%s'; forgetting it", raw_path)
+            self.settings.set_app(_LAST_OPEN_PROJECT_SETTING, None)
+            return None
+
+    def close_project(self, *, forget: bool = False) -> None:
         project = self.projects.current
         if project is None:
             return
@@ -142,6 +166,8 @@ class Application:
             except Exception:
                 logger.exception("Plugin '%s' raised during deactivate()", loaded.manifest.id)
         self.projects.close()
+        if forget:
+            self.settings.set_app(_LAST_OPEN_PROJECT_SETTING, None)
 
     def _activate_plugins(self, project: OpenProject) -> None:
         for loaded in self._loaded_plugins:

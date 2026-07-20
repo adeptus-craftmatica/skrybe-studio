@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import cast
 
@@ -52,3 +53,66 @@ def test_note_persists_across_close_and_reopen(
 
     reopened_app.close_project()
     reopened_app.shutdown()
+
+
+def test_quitting_with_a_project_open_reopens_it_on_next_launch(
+    app_paths: ApplicationPaths, project_root: Path
+) -> None:
+    app = Application(paths=app_paths)
+    app.load_plugins()
+    project = app.create_project(project_root, "Reopen Test")
+    saved_root = project.paths.root
+
+    # shutdown() closes the project as part of normal teardown, but not via
+    # an explicit "Close Project" - it must still be remembered as "was open
+    # when the app last quit."
+    app.shutdown()
+
+    relaunched_app = Application(paths=app_paths)
+    relaunched_app.load_plugins()
+    reopened = relaunched_app.reopen_last_project()
+
+    assert reopened is not None
+    assert reopened.paths.root == saved_root
+    assert relaunched_app.projects.current is not None
+
+    relaunched_app.close_project()
+    relaunched_app.shutdown()
+
+
+def test_explicitly_closing_a_project_means_next_launch_does_not_reopen_it(
+    app_paths: ApplicationPaths, project_root: Path
+) -> None:
+    app = Application(paths=app_paths)
+    app.load_plugins()
+    app.create_project(project_root, "Forget Test")
+
+    app.close_project(forget=True)
+    app.shutdown()
+
+    relaunched_app = Application(paths=app_paths)
+    relaunched_app.load_plugins()
+
+    assert relaunched_app.reopen_last_project() is None
+    assert relaunched_app.projects.current is None
+
+    relaunched_app.shutdown()
+
+
+def test_reopen_last_project_gracefully_handles_a_deleted_project(
+    app_paths: ApplicationPaths, project_root: Path
+) -> None:
+    app = Application(paths=app_paths)
+    app.load_plugins()
+    project = app.create_project(project_root, "Deleted Test")
+    saved_root = project.paths.root
+    app.shutdown()
+    shutil.rmtree(saved_root)
+
+    relaunched_app = Application(paths=app_paths)
+    relaunched_app.load_plugins()
+
+    assert relaunched_app.reopen_last_project() is None
+    assert relaunched_app.settings.get_app("last_open_project_path") is None
+
+    relaunched_app.shutdown()
