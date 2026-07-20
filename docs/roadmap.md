@@ -3,6 +3,18 @@
 Skrybe Studio is being built in broad phases. **0.1 Platform** and **0.2 Writing** are
 delivered; everything after them is directional, not committed or scheduled.
 
+## Branch status (as of 0.3 development start)
+
+`main` does not yet contain 0.2 - `feat/manuscript-v0.2` (13 commits ahead of `main`) is
+complete, quality-gated, and unmerged, unpushed, and untagged by explicit instruction. 0.3
+development (`feat/story-knowledge-v0.3`) is **stacked on `feat/manuscript-v0.2`**, not on
+`main`, because 0.3's Story Bible/Relationships/Planning plugins depend on 0.2's Manuscript
+plugin, `AssetLookup` contract, tab-based workspace switching, and reopen-last-project behavior
+- none of which exist on `main` yet. Merging 0.3 to `main` will require `feat/manuscript-v0.2`
+to land first (or `feat/story-knowledge-v0.3` to be rebased onto `main` after that merge,
+replaying its commits against the 0.2 work already merged in). Nothing has been pushed, merged,
+or tagged as of this note.
+
 ## 0.1 Platform (delivered)
 
 - Core plugin architecture: manifest validation, discovery, dependency ordering, lifecycle,
@@ -34,15 +46,39 @@ delivered; everything after them is directional, not committed or scheduled.
 - Undo/redo is not yet wired through the manuscript editor at scale; that remains open for a
   future iteration.
 
-## 0.3 Planning
+## 0.3 Planning and Story Knowledge (in progress)
 
-- Story bible / worldbuilding plugin: characters, locations, factions, lore entries as
-  entities, linked via relationships.
-- Timeline plugin: events as entities, ordered and linked to manuscript scenes and
-  story-bible entities.
-- Relationship graph visualization as a workspace panel, built purely on the existing
-  `Relationship` contract - no new core concept required.
-- Expanded shared search covering the new plugins' content.
+- **Story Bible** plugin: knowledge entities (characters, locations, organizations, items, and
+  other built-in and user-defined types), a project-local custom entity-type and custom-field
+  system, entity-to-entity and entity-to-manuscript-scene relationships, backlinks, and a
+  dedicated Worldbuilding workspace.
+- **Relationships** plugin: a graph visualization over the shared `Relationship` contract
+  (pan/zoom/filter/layout/saved views) that owns only presentation state - graph nodes display
+  canonical entities, never a duplicate copy of their data.
+- **Planning** plugin: corkboard and beat-board views over Manuscript's existing scene entities
+  (referenced by ID, never duplicated), plot threads, structure templates, and a clearly
+  separated Planning Order vs. Manuscript Order so rearranging cards during planning can never
+  silently reorder the manuscript.
+- Explicit, rename-safe entity links insertable into manuscript content (`skrybe://entity/<uuid>`
+  or an equivalent stable-ID scheme), surviving autosave, snapshots, and export.
+- A small generic issue-reporting foundation and a handful of deterministic integrity checks
+  (e.g. a relationship pointing at an archived entity) - not a full continuity checker.
+- Expanded shared search and cross-plugin navigation (Back/Forward, reveal) covering all of the
+  above, with every plugin remaining independently disable-able without corrupting or losing
+  the others' data.
+- See [`docs/story-bible-plugin.md`](story-bible-plugin.md),
+  [`docs/relationships-plugin.md`](relationships-plugin.md),
+  [`docs/planning-plugin.md`](planning-plugin.md),
+  [`docs/entity-types-and-fields.md`](entity-types-and-fields.md), and
+  [`docs/entity-linking.md`](entity-linking.md) for design detail as each lands.
+
+Explicitly out of scope for 0.3 (deferred, not designed against yet): a timeline/fictional-
+calendar engine, a full continuity checker (0.3 ships only a small deterministic-issue
+foundation), a full revision dashboard, EPUB/print publishing, an AI assistant, cloud sync,
+real-time collaboration, a plugin marketplace, mobile apps, submission tracking, a general
+custom-database/query-builder product, a geographic map editor, a whiteboard system, or a full
+mind-mapping clone. The Relationships plugin's graph canvas is a focused, native-Qt
+visualization over existing entities/relationships - not a universal infinite-canvas platform.
 
 ## 0.4 Publishing
 
