@@ -10,12 +10,13 @@ from skrybe_studio.plugins.notes.plugin import NotesPlugin
 
 NOTES_ID = "com.adeptus-craftmatica.skrybe.notes"
 ASSETS_ID = "com.adeptus-craftmatica.skrybe.assets"
+MANUSCRIPT_ID = "com.adeptus-craftmatica.skrybe.manuscript"
 
 
-def test_load_plugins_discovers_notes_and_assets(loaded_application: Application) -> None:
+def test_load_plugins_discovers_all_builtin_plugins(loaded_application: Application) -> None:
     ids = {loaded.manifest.id for loaded in loaded_application.loaded_plugins}
 
-    assert ids == {NOTES_ID, ASSETS_ID}
+    assert ids == {NOTES_ID, ASSETS_ID, MANUSCRIPT_ID}
     assert loaded_application.plugin_failures == []
 
 
