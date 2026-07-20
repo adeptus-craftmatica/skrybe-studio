@@ -38,6 +38,17 @@ will adopt [Semantic Versioning](https://semver.org/) once it reaches 1.0.
   on every switch. `find_enclosing_main_window()` (`core/workspaces/panels.py`) lets a plugin
   find the dock layout it belongs to for cross-cutting behavior like Manuscript's focus mode,
   scoped correctly to its own workspace tab rather than every workspace's docks at once.
+- Quitting with a project open now reopens it automatically on next launch
+  (`Application.reopen_last_project()`), distinct from the "Open Recent" list - closing a
+  project explicitly (File > Close Project) is remembered too, so the next launch starts at the
+  welcome screen instead, matching how most document-based apps behave.
+- Each workspace's dock layout (panel sizes and positions) now persists per workspace, captured
+  right before a stale workspace is rebuilt (project switch) and again on app close, so a
+  resized panel survives both switching projects mid-session and quitting and relaunching.
+- The Asset Library's details panel now shows a full-size preview for image assets (not just a
+  thumbnail in the browser grid) and a "Linked From" list of every entity that references the
+  selected asset via a relationship (e.g. a manuscript's cover image), labeled generically from
+  the relationship type without the Assets plugin needing to know what a "manuscript" is.
 
 ## [0.1.0] - 2026-07-20
 

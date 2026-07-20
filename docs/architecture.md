@@ -73,7 +73,14 @@ class Relationship(BaseModel):
 
 Relationships can cross plugin boundaries freely (e.g. a future timeline event referencing a
 character entity owned by a story-bible plugin) without either plugin importing the other -
-they only need to know the other's entity ID.
+they only need to know the other's entity ID. This is already exercised for real: Manuscript
+creates a `manuscript.cover_asset` relationship pointing at an Asset Library entity for a
+manuscript's cover image, and the Asset Library's details panel shows a generic "Linked From"
+list for any asset by calling `RelationshipService.for_entity(asset_id)` and looking up the
+other side's title through `EntityService` - it never needs to know that `manuscript.cover_asset`
+means "this is a cover image" or that Manuscript exists at all, only that *something* points at
+this asset. The relationship type string is shown to the user only in a generically humanized
+form (last dot-segment, underscores to spaces, title-cased) for exactly this reason.
 
 ## The event bus
 
@@ -138,6 +145,28 @@ on every switch, via a single set of dock widgets shared across all workspaces a
 pick which one was live. The standalone plugin host, which only ever shows one workspace, still
 docks panels directly on its own top-level `QMainWindow` - there's no nested window there because
 there's nothing to switch between.
+
+Each workspace page's dock geometry (panel sizes and positions) is persisted to app-scoped
+settings under `workspace_layout.<workspace_id>`, captured right before a stale page is rebuilt
+(`_populate_workspace_page`, guarded so the very first build of a workspace never overwrites a
+previously saved layout with an empty one) and again for every page on app close
+(`MainWindow.closeEvent`). This is what lets a resized panel survive both a mid-session project
+switch and a full app restart, using the same `QMainWindow.saveState()`/`restoreState()`
+mechanism the outer window already used for its own geometry.
+
+## Reopening the last project
+
+`Application.reopen_last_project()` reopens whatever project was open when the app last quit,
+tracked via a dedicated `last_open_project_path` app setting - deliberately separate from
+`RecentProjectsStore`, which keeps history of every project ever opened and exists for the "Open
+Recent" menu. `create_project`/`open_project` set it; an explicit `close_project(forget=True)`
+(what `MainWindow`'s File > Close Project uses) clears it, while `Application.shutdown()`'s own
+internal `close_project()` call - which runs on every quit, project open or not, to deactivate
+plugins cleanly - does not, since `forget` defaults to `False`. That distinction is what makes
+"quit with a project open" and "explicitly close the project, then quit" behave differently, as
+most document-based apps do. If the remembered path no longer resolves to a valid project (moved
+or deleted), `reopen_last_project()` clears the setting and returns `None` rather than raising or
+retrying on every subsequent launch.
 
 ## Cross-cutting UI behavior without core changes
 

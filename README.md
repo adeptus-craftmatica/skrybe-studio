@@ -52,19 +52,22 @@ Skrybe Studio is designed around a small, stable core and independently develope
 - Shared entity and relationship services backed by SQLite (SQLAlchemy 2.x), with soft deletion.
 - Synchronous, typed, error-isolated event bus and a command registry with fuzzy-matched
   command palette search.
-- `.skrybe` project format: create / open / close / validate, recent-projects tracking.
+- `.skrybe` project format: create / open / close / validate, recent-projects tracking, and
+  automatic reopening of whatever project was open when the app last quit.
 - A small, testable plugin migration coordinator (full Alembic integration deferred).
 - Workspace and panel registries; a Qt Widgets main window shell with tab-based workspace
-  switching (each workspace's panels build once and persist across switches), docking, project
-  dialogs, a plugin manager dialog, and light/dark/system theming driven by centralized design
-  tokens.
+  switching (each workspace's panels build once and persist across switches, including
+  per-workspace dock layout - panel sizes and positions survive project switches and app
+  restarts), docking, project dialogs, a plugin manager dialog, and light/dark/system theming
+  driven by centralized design tokens.
 - Background job abstraction (Qt thread pool) with cooperative cancellation.
 - An undo/redo abstraction (Qt's `QUndoStack` behind a Qt-free domain contract).
 - **Notes** reference plugin: create/rename/edit/delete notes, tags, word count, search
   contribution, entity registration (`notes.note`), standalone execution.
 - **Asset Library** reference plugin: import images with thumbnails, SHA-256 duplicate
   detection, metadata, missing-file detection, entity registration (`assets.asset`), standalone
-  execution.
+  execution, a full-size preview and a "Linked From" backlink list (every entity referencing the
+  selected asset via a relationship) in the details panel.
 
 **Manuscript (v0.2.0)** - see [`docs/manuscript-plugin.md`](docs/manuscript-plugin.md) for detail
 
