@@ -229,7 +229,13 @@ class MainWindow(QMainWindow):
 
         index = self._workspace_combo.findData(workspace_id)
         if index >= 0:
+            # Block signals: setCurrentIndex would otherwise fire
+            # currentIndexChanged -> _on_workspace_combo_changed -> a second,
+            # redundant call back into this same method, double-building
+            # every panel in the workspace.
+            self._workspace_combo.blockSignals(True)
             self._workspace_combo.setCurrentIndex(index)
+            self._workspace_combo.blockSignals(False)
         self._app.settings.set_app("last_workspace", workspace_id)
 
     def _teardown_dock_widgets(self) -> None:
