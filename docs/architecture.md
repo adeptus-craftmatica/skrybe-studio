@@ -190,6 +190,61 @@ further changes to `core/` or `MainWindow` beyond that one helper, so it's a pat
 plugin can reuse for similar cross-cutting behavior instead of asking for a new core extension
 point.
 
+## Generic contracts introduced for 0.3
+
+0.3 adds a small set of core registries/services to support cross-plugin planning and
+story-knowledge features (Story Bible, Relationships, Planning) without any of those plugins
+importing one another. Each one follows the same test already applied to `AssetLookup` in 0.2:
+would this be useful to a plugin that has nothing to do with story writing? If the honest answer
+is "only Story Bible would ever use this," it does not belong here - see, for contrast, the
+custom entity-type/field *schema* system, which is Story Bible's own domain model
+(`docs/entity-types-and-fields.md`), not a core contract, precisely because nothing outside
+Story Bible needs to understand what a "field type" is.
+
+- **`EntityTypeRegistry`** (`core/entities/type_registry.py`) - maps an entity type ID to display
+  metadata (`EntityTypeDefinition`: name, plural, icon, capabilities, ...), so any plugin can show
+  an icon or label for an entity type it doesn't own (a search result, a backlink row) without
+  importing the owning plugin. Exactly the "ID to metadata" shape `PanelRegistry` already uses for
+  panels. **Project-scoped** (one fresh instance per open project, in `OpenProject`/
+  `ProjectContext`) because project-local custom entity types are project data - a different
+  project can have a different set of them - while built-in types are simply re-registered by
+  their owning plugin's `activate()` every time a project opens.
+- **`RelationshipTypeRegistry`** (`core/entities/relationship_type_registry.py`) - the same idea
+  for relationship types (`RelationshipTypeDefinition`: labels, directionality, allowed endpoint
+  types, cardinality guidance). Also project-scoped, for the same reason. The canonical
+  relationship *records* it describes were already core and already generic
+  (see "The relationship model" above) - this only adds a place to describe what a relationship
+  *type* means for display and validation, which no plugin defining a type should have to
+  re-explain to every other plugin that might render one.
+- **`EntityViewerRegistry`** (`core/navigation/viewer_registry.py`) - maps an entity type's
+  namespace (the text before its first ".", e.g. "story_bible", "manuscript") to a reveal handler
+  - a bound method on the owning plugin instance that shows/focuses a given entity ID, exactly
+  like a `Command.is_enabled` callback: expected to check its own plugin's state and no-op
+  gracefully rather than raise. Registered once per namespace at `register()` time, since
+  namespaces are static even though the individual (possibly custom, possibly project-local)
+  entity types within one are not. **App-wide** (`PluginContext`), matching `PanelRegistry`.
+- **`NavigationService`** (`core/navigation/service.py`) + **`NavigationTarget`**
+  (`core/contracts/navigation.py`) - a Qt-free Back/Forward history over entity IDs, promoting the
+  exact shape Manuscript's own (unchanged) intra-document `NavigationHistory` already used in 0.2,
+  so history can span plugin boundaries. It only tracks a position in a list; it does not know
+  `EntityViewerRegistry` exists - whatever wires up a global "Back" action is responsible for
+  taking `go_back()`'s result and calling `EntityViewerRegistry.reveal()` itself. **App-wide**, but
+  `Application.create_project`/`open_project`/`close_project` all call `navigation.clear()`, since
+  entity IDs from a different (or no) project are meaningless.
+- **`IssueService`** (`core/issues/service.py`) + **`Issue`/`IssueProvider`**
+  (`core/issues/contracts.py`) - a small aggregator for deterministic integrity issues
+  ("a relationship points at an archived entity"), deliberately mirroring `SearchService`/
+  `SearchProvider`: ask every registered plugin for typed contributions, tolerate any one raising,
+  know nothing about what the contributions mean. This is the entire "continuity foundation" -
+  not a continuity checker. The actual rule logic lives entirely in whichever plugin can evaluate
+  it (Story Bible, Planning); core only standardizes the shape of the result.
+
+None of the above required touching `Workspace`/`PanelRegistry` (workspaces already register
+generically, per "Workspaces and panels"), and none of them added anything domain-specific to
+`core/` - the encyclopedia of *what kinds of things* exist (character, location, "knows",
+"parent of", ...) is entirely Story Bible's own data, described in
+[`docs/entity-types-and-fields.md`](entity-types-and-fields.md).
+
 ## Storage ownership
 
 Each project is one SQLite file (`project.db`). Core-owned tables (`core_entities`,

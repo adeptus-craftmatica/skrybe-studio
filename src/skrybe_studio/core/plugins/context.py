@@ -14,10 +14,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from skrybe_studio.core.commands.registry import CommandRegistry
+from skrybe_studio.core.entities.relationship_type_registry import RelationshipTypeRegistry
 from skrybe_studio.core.entities.relationships import RelationshipService
 from skrybe_studio.core.entities.service import EntityService
+from skrybe_studio.core.entities.type_registry import EntityTypeRegistry
 from skrybe_studio.core.events.bus import EventBus
+from skrybe_studio.core.issues.service import IssueService
 from skrybe_studio.core.jobs.manager import JobManager
+from skrybe_studio.core.navigation.service import NavigationService
+from skrybe_studio.core.navigation.viewer_registry import EntityViewerRegistry
 from skrybe_studio.core.search.service import SearchService
 from skrybe_studio.core.services.container import ServiceContainer
 from skrybe_studio.core.settings.service import SettingsService
@@ -40,6 +45,9 @@ class PluginContext:
     services: ServiceContainer
     jobs: JobManager
     search: SearchService
+    entity_viewers: EntityViewerRegistry
+    navigation: NavigationService
+    issues: IssueService
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,3 +59,5 @@ class ProjectContext:
     relationships: RelationshipService
     database: Database
     migrations: PluginMigrationCoordinator
+    entity_types: EntityTypeRegistry
+    relationship_types: RelationshipTypeRegistry

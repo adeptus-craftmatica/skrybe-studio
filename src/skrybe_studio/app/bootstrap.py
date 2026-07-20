@@ -14,8 +14,11 @@ from skrybe_studio.app.paths import ApplicationPaths, resolve_application_paths
 from skrybe_studio.core.commands.registry import CommandRegistry
 from skrybe_studio.core.errors import install_excepthook
 from skrybe_studio.core.events.bus import EventBus
+from skrybe_studio.core.issues.service import IssueService
 from skrybe_studio.core.jobs.manager import JobManager
 from skrybe_studio.core.logging_config import configure_logging
+from skrybe_studio.core.navigation.service import NavigationService
+from skrybe_studio.core.navigation.viewer_registry import EntityViewerRegistry
 from skrybe_studio.core.plugins.context import PluginContext, ProjectContext
 from skrybe_studio.core.plugins.loader import LoadedPlugin, PluginLoader, PluginLoadFailure
 from skrybe_studio.core.projects.errors import ProjectError
@@ -51,6 +54,9 @@ class Application:
         self.services = ServiceContainer()
         self.jobs = JobManager()
         self.search = SearchService()
+        self.entity_viewers = EntityViewerRegistry()
+        self.navigation = NavigationService()
+        self.issues = IssueService()
         self.theme = ThemeManager(ThemeMode(self.settings.get_app("theme", ThemeMode.SYSTEM.value)))
         self.theme.theme_changed.connect(self._on_theme_changed)
 
@@ -111,6 +117,9 @@ class Application:
             services=self.services,
             jobs=self.jobs,
             search=self.search,
+            entity_viewers=self.entity_viewers,
+            navigation=self.navigation,
+            issues=self.issues,
         )
 
     def _build_project_context(self, plugin_id: str, project: OpenProject) -> ProjectContext:
@@ -120,6 +129,8 @@ class Application:
             relationships=project.relationships,
             database=project.database,
             migrations=project.migrations,
+            entity_types=project.entity_types,
+            relationship_types=project.relationship_types,
         )
 
     # --- project lifecycle ---------------------------------------------------
@@ -127,12 +138,14 @@ class Application:
     def create_project(self, root: Path, name: str) -> OpenProject:
         project = self.projects.create(root, name)
         self._activate_plugins(project)
+        self.navigation.clear()
         self.settings.set_app(_LAST_OPEN_PROJECT_SETTING, str(project.paths.root))
         return project
 
     def open_project(self, root: Path) -> OpenProject:
         project = self.projects.open(root)
         self._activate_plugins(project)
+        self.navigation.clear()
         self.settings.set_app(_LAST_OPEN_PROJECT_SETTING, str(project.paths.root))
         return project
 
@@ -166,6 +179,7 @@ class Application:
             except Exception:
                 logger.exception("Plugin '%s' raised during deactivate()", loaded.manifest.id)
         self.projects.close()
+        self.navigation.clear()
         if forget:
             self.settings.set_app(_LAST_OPEN_PROJECT_SETTING, None)
 

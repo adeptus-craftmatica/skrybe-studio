@@ -11,8 +11,10 @@ from uuid import uuid4
 
 from pydantic import ValidationError
 
+from skrybe_studio.core.entities.relationship_type_registry import RelationshipTypeRegistry
 from skrybe_studio.core.entities.relationships import RelationshipService
 from skrybe_studio.core.entities.service import EntityService
+from skrybe_studio.core.entities.type_registry import EntityTypeRegistry
 from skrybe_studio.core.projects.errors import (
     InvalidProjectError,
     ProjectAlreadyExistsError,
@@ -38,6 +40,8 @@ class OpenProject:
     entities: EntityService
     relationships: RelationshipService
     migrations: PluginMigrationCoordinator
+    entity_types: EntityTypeRegistry
+    relationship_types: RelationshipTypeRegistry
 
 
 class ProjectService:
@@ -118,6 +122,8 @@ class ProjectService:
             entities=entities,
             relationships=relationships,
             migrations=migrations,
+            entity_types=EntityTypeRegistry(),
+            relationship_types=RelationshipTypeRegistry(),
         )
         self._current = project
         self._recent.record_opened(paths.root, metadata.name)
