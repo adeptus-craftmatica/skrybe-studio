@@ -5,7 +5,42 @@ All notable changes to this project will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
 will adopt [Semantic Versioning](https://semver.org/) once it reaches 1.0.
 
-## [0.1.0] - Unreleased
+## [0.2.0] - Unreleased
+
+### Added
+
+- **Manuscript** plugin (`com.adeptus-craftmatica.skrybe.manuscript`): the first major
+  creative-domain plugin.
+  - Manuscript creation from local templates (Blank Novel, Three-Act Novel, Short Story,
+    Nonfiction Book) and a binder-style hierarchy (manuscript/folder/part/chapter/scene/
+    document) with type-validated parent-child rules and cycle prevention.
+  - A tabbed, splittable document editor with focus mode, typewriter scrolling, find/replace,
+    zoom, and debounced autosave with explicit flush points.
+  - An inspector for metadata, status, label, tags, synopsis, compile-inclusion, and per-node
+    word-count targets.
+  - Writing goals: per-node targets and daily net-word-delta tracking.
+  - Snapshots with diff-against-current and restore, taking an automatic safety snapshot first.
+  - Local manuscript search contributing into shared cross-plugin search, plus back/forward
+    navigation history scoped to document views.
+  - A typed compile pipeline with plain-text, Markdown, HTML, and DOCX exporters and presets
+    (Full Manuscript, Submission Draft, Plain Backup); exporting runs as a background job.
+  - Optional cover-image integration with the Asset Library plugin, degrading gracefully when
+    Asset Library is disabled or unavailable.
+- `AssetLookup` protocol (`core/contracts/asset_lookup.py`): a minimal, domain-neutral core
+  contract letting a plugin advertise a "resolve entity to display data" capability without any
+  plugin importing another's implementation classes. The Asset Library plugin registers an
+  adapter; Manuscript consumes it for cover images.
+- Lightweight, dependency-free fuzzy matching (`core/commands/fuzzy.py`) for the command
+  palette, replacing plain substring filtering.
+
+### Fixed
+
+- `MainWindow._switch_workspace()` recursively rebuilt every workspace's panels twice: the
+  final `setCurrentIndex()` call on the workspace combo box wasn't guarded with
+  `blockSignals()`, so it re-triggered `_switch_workspace()` via the combo's own
+  `currentIndexChanged` signal.
+
+## [0.1.0] - 2026-07-20
 
 ### Added
 

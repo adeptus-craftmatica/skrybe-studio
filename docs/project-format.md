@@ -43,7 +43,8 @@ A single SQLite file, opened with `PRAGMA foreign_keys=ON`. Core-owned tables:
 - `core_plugin_migrations` - the migration ledger (which named migration ran for which plugin).
 
 Plugin-owned tables live in the same file, prefixed by plugin name (`notes_note`,
-`assets_asset`, ...), each defined against the plugin's own `DeclarativeBase`. See
+`assets_asset`, `manuscript_node`, `manuscript_document_content`, `manuscript_snapshot`,
+`manuscript_daily_progress`, ...), each defined against the plugin's own `DeclarativeBase`. See
 [`docs/architecture.md`](architecture.md#storage-ownership) for why this is safe.
 
 ## `assets/`
@@ -66,8 +67,13 @@ reconstruct the project - it can be deleted and will be regenerated or fall back
 
 ## `documents/`, `exports/`, `backups/`
 
-Created for every project in this iteration but not yet used - reserved for the manuscript
-editor, publishing/export plugins, and backup coordination described in
+Still reserved and unused as of v0.2.0. The Manuscript plugin does **not** store document
+content as files under `documents/` - scene/document text lives in `manuscript_document_content`
+alongside every other manuscript table in `project.db`, so a manuscript node's content is
+covered by the same soft-deletion, migration, and single-file-backup story as everything else
+in the database. Exported files (plain text/Markdown/HTML/DOCX) are written to whatever path
+the user picks in the export dialog's save-file prompt, not automatically into `exports/`.
+`backups/` remains reserved for the backup coordination described in
 [`docs/roadmap.md`](roadmap.md). No archive compression is implemented yet.
 
 ## Recently opened projects

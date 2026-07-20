@@ -23,6 +23,14 @@ This is a plain layered architecture: `ui` depends on `application`, `applicatio
 own directory is allowed to depend on anything but the plugin's `plugin.py` entrypoint and its
 manifest's declared `capabilities`.
 
+A plugin with a single, narrow concern (Notes, Asset Library) typically exposes one
+`self.service` attribute from its `Plugin` class. A plugin with several distinct concerns
+(Manuscript has hierarchy, documents, snapshots, goals, search, export, and optional asset
+integration) should expose one named attribute per concern (`self.hierarchy`,
+`self.documents`, `self.snapshots`, ...) rather than forcing everything through a single
+god-service - there's nothing special about the single-`service` pattern; it's just what a
+small plugin happens to need.
+
 ## The manifest
 
 `manifest.json` is validated against `PluginManifest`
@@ -204,6 +212,22 @@ context.search.register_provider(self._search_provider)
 ```
 
 Unregister it in `deactivate()` via `context.search.unregister_provider(...)`.
+
+## Consuming another plugin's optional capability
+
+Never import another plugin's implementation classes to reach a capability it offers. If the
+capability's shape is genuinely domain-neutral (not specific to any one plugin's feature),
+define it as a `Protocol` in `core/contracts` instead - see `AssetLookup`
+(`core/contracts/asset_lookup.py`) and how the Manuscript plugin resolves it:
+
+```python
+self._asset_lookup: AssetLookup | None = context.services.get(AssetLookup)
+```
+
+Treat an absent optional capability as a normal state, not an error: resolving an interface
+that no plugin registered returns `None`, and your feature should degrade gracefully (hide the
+UI, no-op the action) rather than raising. This is what lets Manuscript's cover-image feature
+work whether or not the Asset Library plugin is installed or enabled.
 
 ## Contributing an undoable action
 

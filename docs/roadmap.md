@@ -1,9 +1,9 @@
 # Roadmap
 
-Skrybe Studio is being built in broad phases. This iteration delivers **0.1 Platform** only -
-everything after it is directional, not committed or scheduled.
+Skrybe Studio is being built in broad phases. **0.1 Platform** and **0.2 Writing** are
+delivered; everything after them is directional, not committed or scheduled.
 
-## 0.1 Platform (this iteration)
+## 0.1 Platform (delivered)
 
 - Core plugin architecture: manifest validation, discovery, dependency ordering, lifecycle,
   isolated failure handling.
@@ -15,13 +15,24 @@ everything after it is directional, not committed or scheduled.
 - Two reference plugins: **Notes** and **Asset Library**.
 - Standalone plugin host, automated tests, CI, developer documentation.
 
-## 0.2 Writing
+## 0.2 Writing (delivered)
 
-- Manuscript editor plugin: chapters/scenes as entities, rich(er) text or Markdown-based
-  editing, a proper document storage strategy under `documents/`.
-- Real-time word/character counts and writing session tracking.
-- Undo/redo wired through the manuscript editor as the primary demonstration of
-  `core/undo` at scale.
+- **Manuscript** plugin: manuscript/folder/part/chapter/scene/document entities in a validated,
+  cyclic-safe binder hierarchy, created from local templates. Document content is stored in the
+  plugin's own `project.db` tables (`manuscript_document_content`), not as files under
+  `documents/` - a proper document storage strategy turned out to mean "in the database," not a
+  new on-disk format.
+- A tabbed/split document editor with focus mode, typewriter scrolling, and real-time word
+  counts; debounced autosave with explicit flush points rather than a separate writing-session
+  tracker.
+- Snapshots, writing goals (per-node targets + daily net-word-delta), local + shared search,
+  and navigation history.
+- Plain-text/Markdown/HTML/DOCX export with presets - originally scoped for **0.4 Publishing**,
+  delivered early since a typed compile pipeline was needed for Manuscript regardless of export
+  format count.
+- Command palette fuzzy matching.
+- Undo/redo is not yet wired through the manuscript editor at scale; that remains open for a
+  future iteration.
 
 ## 0.3 Planning
 
@@ -35,7 +46,8 @@ everything after it is directional, not committed or scheduled.
 
 ## 0.4 Publishing
 
-- Export plugin(s): EPUB/PDF/DOCX output from manuscript + metadata.
+- EPUB and print-ready PDF export, in addition to the plain-text/Markdown/HTML/DOCX export
+  already delivered in 0.2.
 - Backup coordination using the `backups/` directory reserved in the project format.
 - Archive compression for project export/sharing (explicitly deferred in 0.1).
 

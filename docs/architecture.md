@@ -101,6 +101,19 @@ entity IDs, events, capability strings in the manifest, and commands - is one of
 plugins are allowed to talk to each other. **Plugins must never import another plugin's
 concrete implementation classes.**
 
+Most such interfaces belong in the plugin that defines the capability. The one exception so
+far is `AssetLookup` (`core/contracts/asset_lookup.py`): a small `Protocol` (`asset_exists`,
+`asset_title`, `resolve_thumbnail`, `list_assets`) that lives in `core/contracts` instead of a
+plugin, because it describes a genuinely domain-neutral shape - "resolve an entity ID to
+display data" - that any plugin might want to expose or consume, not something specific to
+assets. The Asset Library plugin registers an adapter implementing it in `activate()`; the
+Manuscript plugin resolves it to optionally show a cover-image thumbnail, and works fully
+without it if Asset Library is disabled - resolving the service returns `None` rather than
+raising, and callers are expected to treat an absent optional capability as a normal state, not
+an error. Adding a new interface to `core/contracts` should be rare and requires the same bar:
+the shape must be meaningful with no feature-specific plugin in mind, not just "this happens to
+be the second plugin that wants it."
+
 ## Workspaces and panels
 
 A `Workspace` (`core/workspaces/models.py`) is a declarative description: a central panel ID,
@@ -110,6 +123,18 @@ maps a panel ID to a zero-argument widget factory; the `WorkspaceRegistry` track
 workspace is active. The main window (and the standalone plugin host) build their docking
 layout purely by resolving IDs through these two registries, so a workspace never needs to
 know which plugin implements its panels.
+
+## Cross-cutting UI behavior without core changes
+
+Some plugin UI behavior needs to reach outside the plugin's own panels - Manuscript's focus
+mode hides every *other* dock widget; toggling its inspector needs to find a dock by ID. Rather
+than adding a manuscript-specific hook to `MainWindow`, this is done through Qt's own generic
+widget-tree APIs: `self.window().findChildren(QDockWidget)` to enumerate every dock regardless
+of which plugin owns it, and `self.window().findChild(QDockWidget, "dock.<panel_id>")` to find
+one by the same panel ID already used for registration. This works identically inside the full
+application shell and the standalone plugin host, and needs zero changes to `core/` or
+`MainWindow` - it's a pattern any future plugin can reuse for similar cross-cutting behavior
+instead of asking for a new core extension point.
 
 ## Storage ownership
 

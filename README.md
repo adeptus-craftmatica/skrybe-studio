@@ -5,10 +5,12 @@ text editor. It is being built as a modular platform for manuscript writing, sto
 worldbuilding, research, asset management, timelines, relationship graphs, publishing, and
 optional AI-assisted workflows.
 
-> **Status: early architecture prototype (v0.1.0).**
-> This iteration proves out the core/plugin architecture with a working desktop shell,
-> project format, and two reference plugins (Notes, Asset Library). Manuscript editing,
-> story bible, timelines, and other major creative features are **not yet implemented**.
+> **Status: first creative-domain plugin (v0.2.0).**
+> v0.1 proved out the core/plugin architecture with a working desktop shell, project format,
+> and two reference plugins (Notes, Asset Library). v0.2 adds **Manuscript** - binder-style
+> chapter/scene organization, a tabbed/split editor with focus mode and typewriter scrolling,
+> snapshots, writing goals, search, and plain-text/Markdown/HTML/DOCX export. Story bible,
+> timelines, relationship graphs, and AI-assisted workflows are **not yet implemented**.
 
 Repository owner: **[adeptus-craftmatica](https://github.com/adeptus-craftmatica)**
 Repository: <https://github.com/adeptus-craftmatica/skrybe-studio>
@@ -41,17 +43,19 @@ Skrybe Studio is designed around a small, stable core and independently develope
   importing one another's implementation classes.
 - A broken optional plugin must never prevent the application from starting.
 
-## Implemented features (v0.1.0)
+## Implemented features
+
+**Platform (v0.1.0)**
 
 - Plugin system: manifest validation, discovery, dependency ordering, duplicate/circular
   detection, isolated failure handling, and a standalone plugin host.
 - Shared entity and relationship services backed by SQLite (SQLAlchemy 2.x), with soft deletion.
-- Synchronous, typed, error-isolated event bus and a command registry.
+- Synchronous, typed, error-isolated event bus and a command registry with fuzzy-matched
+  command palette search.
 - `.skrybe` project format: create / open / close / validate, recent-projects tracking.
 - A small, testable plugin migration coordinator (full Alembic integration deferred).
-- Workspace and panel registries; a Qt Widgets main window shell with docking, a command
-  palette, project dialogs, a plugin manager dialog, and light/dark/system theming driven by
-  centralized design tokens.
+- Workspace and panel registries; a Qt Widgets main window shell with docking, project dialogs,
+  a plugin manager dialog, and light/dark/system theming driven by centralized design tokens.
 - Background job abstraction (Qt thread pool) with cooperative cancellation.
 - An undo/redo abstraction (Qt's `QUndoStack` behind a Qt-free domain contract).
 - **Notes** reference plugin: create/rename/edit/delete notes, tags, word count, search
@@ -60,10 +64,26 @@ Skrybe Studio is designed around a small, stable core and independently develope
   detection, metadata, missing-file detection, entity registration (`assets.asset`), standalone
   execution.
 
+**Manuscript (v0.2.0)** - see [`docs/manuscript-plugin.md`](docs/manuscript-plugin.md) for detail
+
+- Manuscript creation from local templates (Blank Novel, Three-Act Novel, Short Story,
+  Nonfiction Book) and a binder-style hierarchy (manuscript/folder/part/chapter/scene/document)
+  with validated parent-child rules, cycle prevention, and drag-and-drop reordering.
+- A tabbed, splittable document editor with focus mode, typewriter scrolling, find/replace,
+  zoom, and debounced autosave.
+- An inspector for metadata, status, labels, tags, synopsis, compile inclusion, and per-node
+  word-count targets, plus daily writing-goal tracking.
+- Snapshots with diff-against-current and restore (with an automatic safety snapshot first).
+- Local manuscript search plus shared cross-plugin search, and back/forward navigation history.
+- A typed compile pipeline with plain-text, Markdown, HTML, and DOCX export and presets (Full
+  Manuscript, Submission Draft, Plain Backup).
+- Optional cover-image integration with the Asset Library plugin that degrades gracefully -
+  Manuscript works fully with Asset Library disabled.
+
 ## Planned plugins
 
-Manuscript editor, story bible / worldbuilding, timelines, relationship graphs, research,
-publishing/export, and optional AI-assisted workflows. See [`docs/roadmap.md`](docs/roadmap.md).
+Story bible / worldbuilding, timelines, relationship graphs, research, and optional
+AI-assisted workflows. See [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Setup
 
@@ -121,8 +141,9 @@ SmartScreen warning until code signing is added.
 
 See [`docs/architecture.md`](docs/architecture.md) for the full core/plugin architecture,
 [`docs/plugin-development.md`](docs/plugin-development.md) for building a plugin,
-[`docs/project-format.md`](docs/project-format.md) for the `.skrybe` project layout, and
-[`docs/roadmap.md`](docs/roadmap.md) for where this is headed.
+[`docs/project-format.md`](docs/project-format.md) for the `.skrybe` project layout,
+[`docs/manuscript-plugin.md`](docs/manuscript-plugin.md) for how the Manuscript plugin is built,
+and [`docs/roadmap.md`](docs/roadmap.md) for where this is headed.
 
 ## Contribution guidance
 
