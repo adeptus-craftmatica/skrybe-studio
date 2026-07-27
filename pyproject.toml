@@ -11,7 +11,7 @@ dependencies = [
     "SQLAlchemy>=2.0,<3.0",
     "pydantic>=2.7,<3.0",
     "alembic>=1.13,<2.0",
-    "platformdirs>=4.2,<5.0",
+    "platformdirs>=4.11.0,<5.0",
 ]
 
 [project.urls]
