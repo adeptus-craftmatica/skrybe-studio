@@ -85,7 +85,7 @@ jobs:
         run: tar -czf dist/SkrybeStudio.tar.gz -C dist SkrybeStudio
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: SkrybeStudio-${{ matrix.label }}
           path: dist/${{ matrix.artifact }}
